@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArcGIS Agentic AI Map</title>
+  <script type="module" src="https://js.arcgis.com/5.0/"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    calcite-shell {
+      height: 100%;
+      width: 100%;
+    }
+
+    arcgis-map {
+      height: 100%;
+      width: 100%;
+    }
+
+    arcgis-assistant {
+      height: 100%;
+    }
+
+    .beta-notice {
+      margin: 8px;
+    }
+
+    @media (max-width: 768px) {
+      calcite-shell-panel {
+        --calcite-shell-panel-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <calcite-shell>
+    <!-- Map -->
+    <arcgis-map id="main-map" item-id="088779d729794d42b9895ffe6bbed1b2">
+      <!-- Top-left: Zoom + Home -->
+      <arcgis-zoom slot="top-left"></arcgis-zoom>
+      <arcgis-home slot="top-left"></arcgis-home>
+
+      <!-- Top-right: Search (expandable) -->
+      <arcgis-expand slot="top-right">
+        <arcgis-search></arcgis-search>
+      </arcgis-expand>
+
+      <!-- Bottom-left: Legend (expandable) -->
+      <arcgis-expand slot="bottom-left">
+        <arcgis-legend></arcgis-legend>
+      </arcgis-expand>
+
+      <!-- Bottom-right: Basemap Toggle -->
+      <arcgis-basemap-toggle slot="bottom-right"></arcgis-basemap-toggle>
+
+      <!-- Bottom-left: Scale Bar -->
+      <arcgis-scale-bar slot="bottom-left" unit="dual"></arcgis-scale-bar>
+    </arcgis-map>
+
+    <!-- Right side panel with AI Assistant -->
+    <calcite-shell-panel slot="panel-end" width="l" id="assistant-panel">
+      <calcite-panel heading="AI Assistant">
+        <calcite-notice class="beta-notice" kind="warning" open icon="exclamation-mark-triangle" scale="s">
+          <span slot="title">Beta Feature</span>
+          <span slot="message">AI components are in beta. Results may be inaccurate.</span>
+        </calcite-notice>
+
+        <arcgis-assistant
+          id="ai-assistant"
+          reference-element="#main-map"
+          heading="AI Map Assistant"
+          description="Explore this map using natural language."
+          entry-message="Hello! I can help you navigate, explore data, and understand this map. Try asking a question!"
+          log-enabled
+          copy-enabled
+        >
+          <arcgis-assistant-navigation-agent></arcgis-assistant-navigation-agent>
+          <arcgis-assistant-data-exploration-agent></arcgis-assistant-data-exploration-agent>
+          <arcgis-assistant-help-agent></arcgis-assistant-help-agent>
+        </arcgis-assistant>
+      </calcite-panel>
+    </calcite-shell-panel>
+  </calcite-shell>
+
+  <script type="module">
+    const map = document.querySelector("arcgis-map");
+    const assistant = document.getElementById("ai-assistant");
+
+    // --- Dynamic Suggested Prompts ---
+    map.addEventListener("arcgisViewReadyChange", async () => {
+      const view = map.view;
+      if (!view?.map) return;
+
+      await view.map.loadAll();
+
+      const layers = view.map.allLayers
+        .filter((l) => l.type === "feature")
+        .map((l) => l.title)
+        .toArray();
+
+      const prompts = [];
+
+      if (layers.length > 0) {
+        prompts.push("What layers are in this map?");
+        prompts.push(`How many features are in ${layers[0]}?`);
+        if (layers.length > 1) {
+          prompts.push(`Summarize the ${layers[1]} layer`);
+        }
+        prompts.push("Zoom to the full extent of the data");
+      } else {
+        prompts.push("What layers are in this map?");
+        prompts.push("Navigate to New York City");
+        prompts.push("What can I ask about this map?");
+      }
+
+      prompts.push("Go to San Francisco");
+
+      assistant.suggestedPrompts = prompts;
+    });
+  </script>
+</body>
+</html>
